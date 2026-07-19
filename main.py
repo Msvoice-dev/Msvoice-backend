@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import replicate
 import os
@@ -15,37 +16,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Link (URL) dawn theihna tur model
+class AudioURL(BaseModel):
+    url: str
+
 @app.get("/")
 def read_root():
-    return {"message": "MsVoice Backend chu a nung e! (AI thluak nen)"}
+    return {"message": "MsVoice Backend chu a nung e! (URL dawng thei tawh)"}
 
+# 1. Endpoint Hlui (File tawi atan - i la mamawh palh takin)
 @app.post("/process-audio/")
 async def process_audio(file: UploadFile = File(...)):
-    # 1. Aw (audio) file rawn thleng chu server-ah kan vawng ṭha lawk ang
     file_location = f"temp_{file.filename}"
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
     try:
-        # 2. Chu aw chu Demucs (Replicate AI) hnenah tihfai turin kan thawn dawn a ni
         with open(file_location, "rb") as audio_file:
             output = replicate.run(
                 "cjwbw/demucs:25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953",
                 input={"audio": audio_file}
             )
-        
-        # 3. AI in a rawn tihfai hnuah, kan thil save chawp kha hmun a awh loh nan kan paih bo leh ang
         os.remove(file_location)
-        
-        # 4. AI in a thliar hrang a (music leh aw), a aw fai hlir (vocals) chu kan thawn kir ang
-        return {
-            "filename": file.filename, 
-            "status": "Hlawhtling takin AI-in a tifai e!", 
-            "clean_audio_url": output.get("vocals") 
-        }
+        return {"status": "success", "clean_audio_url": output.get("vocals")}
         
     except Exception as e:
-        # Fello a awm palh pawhin file hnawk kan paih fai tho ang
         if os.path.exists(file_location):
             os.remove(file_location)
-        return {"error": f"AI in a process thei lo: {str(e)}"}
+        return {"error": str(e)}
+
+# 2. ENDPOINT THAR: File lian pui pui atan (Link chauh a dawng ang)
+@app.post("/process-url/")
+async def process_url(req: AudioURL):
+    try:
+        # Replicate AI hian file rit pui pui kha URL (link) aṭangin direct-in a pawt lut thei!
+        output = replicate.run(
+            "cjwbw/demucs:25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953",
+            input={"audio": req.url}
+        )
+        return {"status": "success", "clean_audio_url": output.get("vocals")}
+    except Exception as e:
+        return {"error": str(e)}

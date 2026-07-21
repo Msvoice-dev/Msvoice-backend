@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import replicate
+import os
 from supabase import create_client, Client
 
 app = FastAPI()
@@ -14,9 +15,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# SUPABASE KEYS
+# SUPABASE KEYS (Environment Variable aṭanga lak chhuah)
 SUPABASE_URL = "https://nflzngxhrdtabooefhsk.supabase.co"
-SUPABASE_KEY = "sb_secret_Mgq3nnuVPAhU8Ob-bk7AQQ_5-HVaFrt" 
+# Render-a i thuhruk tak kha a pawt chhuak dawn a ni
+SUPABASE_KEY = os.environ.get("SUPABASE_SECRET_KEY") 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 class AudioURL(BaseModel):

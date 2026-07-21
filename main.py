@@ -17,7 +17,6 @@ app.add_middleware(
 
 # SUPABASE KEYS (Environment Variable aṭanga lak chhuah)
 SUPABASE_URL = "https://nflzngxhrdtabooefhsk.supabase.co"
-# Render-a i thuhruk tak kha a pawt chhuak dawn a ni
 SUPABASE_KEY = os.environ.get("SUPABASE_SECRET_KEY") 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -42,8 +41,21 @@ async def process_url(req: AudioURL):
 
         supabase.table("upload_queue").update({"status": "completed"}).eq("id", req.file_id).execute()
 
+        # --- TUNA KAN BELH THAR: AUTO-DELETE ---
+        # File URL aṭangin file hming kan la chhuak ang a, kan delete nghal ang
+        file_name = req.url.split('/')[-1]
+        supabase.storage.from_("audio-uploads").remove([file_name])
+
         return {"status": "success", "clean_audio_url": clean_url}
 
     except Exception as e:
         supabase.table("upload_queue").update({"status": "failed"}).eq("id", req.file_id).execute()
+        
+        # Error a awm palh pawhin file hlui chu a delete tho ang (Bucket a khah loh nan)
+        try:
+            file_name = req.url.split('/')[-1]
+            supabase.storage.from_("audio-uploads").remove([file_name])
+        except:
+            pass
+
         return {"error": str(e)}
